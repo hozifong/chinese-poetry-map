@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国古诗地图 - 唐宋诗歌地理位置</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>中国古诗地图</h1>
+            <p class="subtitle">唐宋诗歌的地理之旅</p>
+        </header>
+        
+        <main>
+            <div class="map-container">
+                <svg id="mapSvg" width="100%" viewBox="0 0 1000 800"></svg>
+                <div id="tooltip" class="tooltip"></div>
+            </div>
+        </main>
+
+        <!-- 古诗卡片模态框 -->
+        <div id="poemModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div class="poem-card">
+                    <h2 id="poemTitle"></h2>
+                    <p id="poemAuthor" class="author"></p>
+                    <p id="poemLocation" class="location"></p>
+                    <div id="poemText" class="poem-text"></div>
+                    <p id="poemTranslation" class="translation"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
