@@ -2,22 +2,38 @@
 class ChinaMapDrawer {
     constructor(svgElement) {
         this.svg = svgElement;
-        this.width = 1000;
-        this.height = 800;
+        this.width = 1200;
+        this.height = 900;
+        this.minLon = 73.5;
+        this.maxLon = 135.5;
+        this.minLat = 18.0;
+        this.maxLat = 53.5;
+    }
+
+    // 将地理坐标转换为SVG坐标
+    lonLatToSvg(lon, lat) {
+        const x = ((lon - this.minLon) / (this.maxLon - this.minLon)) * this.width;
+        const y = ((this.maxLat - lat) / (this.maxLat - this.minLat)) * this.height;
+        return [x, y];
     }
 
     // 绘制地图背景
-    drawMapBackground() {
-        // 创建一个简单的中国地图轮廓（使用简化版本）
-        const provinceData = this.getProvinceData();
-        
+    drawMapBackground(geoJsonData) {
         // 绘制各省份
-        provinceData.forEach(province => {
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('class', 'province');
-            path.setAttribute('d', province.path);
-            path.setAttribute('title', province.name);
-            this.svg.appendChild(path);
+        geoJsonData.features.forEach(feature => {
+            const geometry = feature.geometry;
+            const name = feature.properties.name;
+            
+            if (geometry.type === 'Polygon') {
+                const coords = geometry.coordinates[0];
+                let pathData = this.coordsToPath(coords);
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('class', 'province');
+                path.setAttribute('d', pathData);
+                path.setAttribute('title', name);
+                this.svg.appendChild(path);
+            }
         });
 
         // 添加背景色
@@ -28,12 +44,25 @@ class ChinaMapDrawer {
         this.svg.insertBefore(rect, this.svg.firstChild);
     }
 
+    // 将坐标数组转换为SVG路径
+    coordsToPath(coords) {
+        if (!coords || coords.length === 0) return '';
+        
+        const svgCoords = coords.map(coord => {
+            const [x, y] = this.lonLatToSvg(coord[0], coord[1]);
+            return `${x},${y}`;
+        });
+        
+        return `M ${svgCoords.join(' L ')} Z`;
+    }
+
     // 绘制地点标记
     drawLocationMarkers(poems, onClickCallback, onHoverCallback) {
         poems.forEach(poem => {
             if (!poem.coordinates) return;
 
-            const [x, y] = poem.coordinates;
+            const [lon, lat] = poem.coordinates;
+            const [x, y] = this.lonLatToSvg(lon, lat);
             
             // 创建标记组
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -44,6 +73,7 @@ class ChinaMapDrawer {
             circle.setAttribute('cx', x);
             circle.setAttribute('cy', y);
             circle.setAttribute('r', '6');
+            circle.setAttribute('data-poem-id', poem.id);
             
             g.appendChild(circle);
             this.svg.appendChild(g);
@@ -52,108 +82,68 @@ class ChinaMapDrawer {
             g.addEventListener('click', () => onClickCallback(poem));
             g.addEventListener('mouseenter', () => onHoverCallback(poem));
             g.addEventListener('mouseleave', () => {
-                document.getElementById('tooltip').classList.remove('visible');
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.classList.remove('visible');
+                }
             });
         });
     }
+}
 
-    // 获取省份数据（简化的中国地图）
-    getProvinceData() {
-        // 这是一个简化版的省份轮廓数据
-        // 实际使用中可以使用更详细的 GeoJSON 数据
-        return [
-            {
-                name: '北京',
-                path: 'M 600 200 L 620 200 L 620 220 L 600 220 Z'
-            },
-            {
-                name: '上海',
-                path: 'M 700 350 L 720 350 L 720 370 L 700 370 Z'
-            },
-            {
-                name: '陕西',
-                path: 'M 450 250 L 500 250 L 500 350 L 450 350 Z'
-            },
-            {
-                name: '四川',
-                path: 'M 380 350 L 450 350 L 450 450 L 380 450 Z'
-            },
-            {
-                name: '广东',
-                path: 'M 550 500 L 650 500 L 650 600 L 550 600 Z'
-            },
-            {
-                name: '江苏',
-                path: 'M 650 300 L 700 300 L 700 380 L 650 380 Z'
-            },
-            {
-                name: '浙江',
-                path: 'M 700 320 L 750 320 L 750 400 L 700 400 Z'
-            },
-            {
-                name: '山东',
-                path: 'M 600 220 L 680 220 L 680 300 L 600 300 Z'
-            },
-            {
-                name: '湖北',
-                path: 'M 500 350 L 600 350 L 600 420 L 500 420 Z'
-            },
-            {
-                name: '湖南',
-                path: 'M 500 420 L 600 420 L 600 500 L 500 500 Z'
-            },
-            {
-                name: '江西',
-                path: 'M 600 380 L 650 380 L 650 470 L 600 470 Z'
-            },
-            {
-                name: '安徽',
-                path: 'M 600 300 L 680 300 L 680 380 L 600 380 Z'
-            },
-            {
-                name: '河南',
-                path: 'M 500 250 L 600 250 L 600 350 L 500 350 Z'
-            },
-            {
-                name: '山西',
-                path: 'M 500 200 L 600 200 L 600 250 L 500 250 Z'
-            },
-            {
-                name: '河北',
-                path: 'M 550 150 L 650 150 L 650 220 L 550 220 Z'
-            },
-            {
-                name: '甘肃',
-                path: 'M 300 200 L 400 200 L 400 350 L 300 350 Z'
-            },
-            {
-                name: '青海',
-                path: 'M 300 150 L 380 150 L 380 220 L 300 220 Z'
-            },
-            {
-                name: '新疆',
-                path: 'M 150 100 L 300 100 L 300 350 L 150 350 Z'
-            },
-            {
-                name: '西藏',
-                path: 'M 200 350 L 350 350 L 350 500 L 200 500 Z'
-            },
-            {
-                name: '云南',
-                path: 'M 350 450 L 450 450 L 450 600 L 350 600 Z'
-            },
-            {
-                name: '贵州',
-                path: 'M 400 420 L 500 420 L 500 500 L 400 500 Z'
-            },
-            {
-                name: '福建',
-                path: 'M 700 400 L 750 400 L 750 500 L 700 500 Z'
-            },
-            {
-                name: '海南',
-                path: 'M 600 600 L 650 600 L 650 680 L 600 680 Z'
-            }
-        ];
+// 应用初始化
+document.addEventListener('DOMContentLoaded', async () => {
+    const svgElement = document.getElementById('map-svg');
+    const drawer = new ChinaMapDrawer(svgElement);
+    
+    try {
+        // 加载地图数据
+        const mapResponse = await fetch('data/china-map.json');
+        const mapData = await mapResponse.json();
+        drawer.drawMapBackground(mapData);
+        
+        // 加载古诗数据
+        const poemsResponse = await fetch('data/poems.json');
+        const poems = await poemsResponse.json();
+        
+        // 绘制标记
+        drawer.drawLocationMarkers(
+            poems,
+            (poem) => showPoemCard(poem),
+            (poem) => showTooltip(poem)
+        );
+    } catch (error) {
+        console.error('加载数据失败:', error);
+    }
+});
+
+// 显示古诗卡片
+function showPoemCard(poem) {
+    const modal = document.getElementById('poem-modal');
+    document.getElementById('poem-title').textContent = poem.title;
+    document.getElementById('poem-author').textContent = `${poem.author} - ${poem.dynasty}`;
+    document.getElementById('poem-location').textContent = `地点：${poem.location}（${poem.province}）`;
+    document.getElementById('poem-content').textContent = poem.content;
+    modal.style.display = 'block';
+}
+
+// 显示悬停提示
+function showTooltip(poem) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = `${poem.title} - ${poem.author}`;
+    tooltip.classList.add('visible');
+}
+
+// 关闭模态窗口
+function closeModal() {
+    const modal = document.getElementById('poem-modal');
+    modal.style.display = 'none';
+}
+
+// 点击模态外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('poem-modal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
     }
 }
